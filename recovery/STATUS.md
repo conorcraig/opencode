@@ -21,6 +21,8 @@ The original working checkout and temporary source archive were removed by autom
 
 ## Current checkpoint
 
-The service starts an artifact observer, stores exact local Git revisions, and exposes them through the user API and worker MCP. The OpenCode app route `/control/*` is the dark control workspace: task board, review decisions, questions, publication, and local revision acceptance. It does not require a paired coding server.
+The service observes native artifacts, keeps exact local Git revisions, compares PPTX outputs by stable slide ID, and reports cost with model totals that reconcile. Completed-task averages exclude unfinished spend.
 
-Host files other than `packages/app/src/shell/routes/routes.tsx` were not modified. Native Windows/Electron, real-account publication, and model-driven workflows still need fresh validation on a bootstrapped checkout.
+`/control/overview` is the workspace: stage board, decision inbox, native comments, prepared publication, local acceptance versus publication, queue, and cost. The command palette entry "Control plane" opens it from the paired shell. The route itself does not require a paired coding server.
+
+Native Windows/Electron, real-account publication, and model-driven runs still need fresh validation on a bootstrapped checkout. Translation files are untouched so the pinned upstream copy is not replaced by a partial catalog.

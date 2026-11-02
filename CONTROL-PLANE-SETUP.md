@@ -34,7 +34,7 @@ bun run dev serve --hostname 127.0.0.1 --port 4096
 bun run --cwd packages/app dev -- --port 4444
 ```
 
-Open http://localhost:4444/control/overview. That route is the control workspace and stays available when no coding server is paired. For native desktop development, use the upstream `bun run dev:desktop` command. Native Windows/Electron execution and account authentication require target-machine validation; a web build alone does not establish them.
+Open http://localhost:4444/control/overview, or choose Control plane from the command palette. That route is the control workspace and stays available when no coding server is paired. For native desktop development, use the upstream `bun run dev:desktop` command. Native Windows/Electron execution and account authentication require target-machine validation; a web build alone does not establish them.
 
 ## Validate
 
