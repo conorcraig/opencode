@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite"
 import { z } from "zod"
+import { summarizeCosts } from "./costs"
 import { Artifact,ArtifactSync,Brief,Comment,Delivery,Event,QueueItem,Request,Review,Run,ServerConfig,Task,TaskCreate,TaskPatch,type Snapshot } from "./schema"
 
 export class Conflict extends Error {}
@@ -23,7 +24,9 @@ export class WorkflowStore {
   checkpoint(id:string,seq:number){this.put("cursors",{id,seq})}
   snapshot(after=0):Snapshot{
     const events=this.db.query<{seq:number,task_id:string,kind:string,actor:string,data:string,created:number},[number]>("SELECT * FROM events WHERE seq>? ORDER BY seq LIMIT 500").all(after).map(row=>Event.parse({...row,taskID:row.task_id,data:JSON.parse(row.data)}))
-    return {tasks:this.all("tasks",Task),runs:this.all("runs",Run),artifacts:this.all("artifacts",Artifact),reviews:this.all("reviews",Review),comments:this.all("comments",Comment),requests:this.all("requests",Request),deliveries:this.all("deliveries",Delivery),syncs:this.all("syncs",ArtifactSync),events,cursor:events.at(-1)?.seq??after,scheduler:{concurrency:this.concurrency(),servers:this.servers().map(server=>({key:server.key,url:server.url})),queue:this.all("queue",QueueItem)}}
+    const tasks=this.all("tasks",Task)
+    const runs=this.all("runs",Run)
+    return {tasks,runs,costs:summarizeCosts(tasks,runs),artifacts:this.all("artifacts",Artifact),reviews:this.all("reviews",Review),comments:this.all("comments",Comment),requests:this.all("requests",Request),deliveries:this.all("deliveries",Delivery),syncs:this.all("syncs",ArtifactSync),events,cursor:events.at(-1)?.seq??after,scheduler:{concurrency:this.concurrency(),servers:this.servers().map(server=>({key:server.key,url:server.url})),queue:this.all("queue",QueueItem)}}
   }
   create(input:z.infer<typeof TaskCreate>,actor:string){return this.db.transaction(()=>{const task=Task.parse({...input,id:crypto.randomUUID(),revision:1,briefRevision:1,stage:"queued",attention:"normal",blocker:"",created:Date.now(),updated:Date.now()});this.dependencies(task);if(task.autoPublish&&task.reviewRequired)throw new Conflict("Automatic publication requires an explicit no-review policy");this.put("tasks",task);this.event(task.id,"task.created",actor,task);return task})()}
   patch(id:string,revision:number,input:z.infer<typeof TaskPatch>,actor:string){return this.db.transaction(()=>{

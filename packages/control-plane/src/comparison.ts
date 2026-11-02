@@ -45,10 +45,16 @@ export function compareValue(before: unknown, after: unknown, path = ""): ValueC
   return [{ path: path || "/", type: "changed", before, after }]
 }
 
-export async function comparePptx(before: string, after: string) {
+export type SlideComparison = { version: number; renderAvailable: false; slides: { id: string; change: string; beforePosition: number | null; afterPosition: number | null; changes: Record<string, unknown> }[] }
+
+export async function comparePptx(before: string, after: string): Promise<SlideComparison> {
   const script = new URL("../script/compare-pptx.py", import.meta.url)
-  const process = Bun.spawn(["python3", decodeURIComponent(script.pathname), before, after], { stdout: "pipe", stderr: "pipe" })
-  const [output, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited])
+  let scriptPath = decodeURIComponent(script.pathname)
+  if (process.platform === "win32" && /^\/[A-Za-z]:/.test(scriptPath)) scriptPath = scriptPath.slice(1)
+  const program = process.env.PYTHON ?? (process.platform === "win32" ? "py" : "python3")
+  const args = program === "py" ? ["-3", scriptPath, before, after] : [scriptPath, before, after]
+  const child = Bun.spawn([program, ...args], { stdout: "pipe", stderr: "pipe" })
+  const [output, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
   if (code) throw new Error(error.trim() || "PowerPoint comparison failed")
-  return JSON.parse(output) as { version: number; renderAvailable: false; slides: { id: string; change: string; beforePosition: number | null; afterPosition: number | null; changes: Record<string, unknown> }[] }
+  return JSON.parse(output) as SlideComparison
 }

@@ -57,6 +57,7 @@ export function createApi(store:WorkflowStore,credentials:Credentials,integratio
         case "history.accept":
         case "history.compare":
         case "history.export":
+        case "history.compareSlides":
         case "history.recordPublication":{
           if(!history)throw new Conflict("Local history is not configured")
           const taskID=z.object({taskID:z.string()}).parse(command.input).taskID
@@ -72,6 +73,7 @@ export function createApi(store:WorkflowStore,credentials:Credentials,integratio
           }
           if(command.op==="history.accept"){user();const input=z.object({taskID:z.string(),commit:z.string()}).parse(command.input);return respond({commit:await history.accept(taskID,input.commit)})}
           if(command.op==="history.compare"){const input=z.object({taskID:z.string(),target:z.string(),baseline:z.enum(["accepted","published"])}).parse(command.input);return respond({diff:await history.compare(taskID,input.target,input.baseline)})}
+          if(command.op==="history.compareSlides"){const input=z.object({taskID:z.string(),from:z.string(),to:z.string(),path:z.string()}).parse(command.input);return respond(await history.compareSlides(taskID,input.from,input.to,input.path))}
           if(command.op==="history.export"){
             user()
             if(!exportDirectory)throw new Conflict("Local export directory is not configured")

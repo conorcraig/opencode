@@ -17,10 +17,11 @@ const definitions = [
   { name: "workflow_history_heads", description: "Read the task's working, accepted and published local revision commits. Acceptance and publication are separate.", schema: z.object({ taskID: z.string() }) },
   { name: "workflow_history_snapshot", description: "Save an exact local Git revision of the declared output files. This does not accept the revision or authorize publication. Scratch paths are rejected.", schema: z.object({ taskID: z.string(), message: z.string().default(""), outputs: z.array(z.object({ path: z.string(), source: z.string().min(1), destination: z.string() })).min(1) }) },
   { name: "workflow_history_compare", description: "Diff a local revision against the accepted or published baseline.", schema: z.object({ taskID: z.string(), target: z.string(), baseline: z.enum(["accepted", "published"]) }) },
+  { name: "workflow_history_compare_slides", description: "Compare a PPTX output across two exact local revisions by stable slide ID. This reports structural changes and does not render slides.", schema: z.object({ taskID: z.string(), from: z.string(), to: z.string(), path: z.string() }) },
 ]
 const operations: Record<string, string> = {
   workflow_task_create: "task.create", workflow_task_patch: "task.patch", workflow_task_enqueue: "task.enqueue", workflow_run_upsert: "run.upsert", workflow_artifact_upsert: "artifact.upsert", workflow_artifact_sync: "artifact.sync", workflow_review_request: "review.request", workflow_request_create: "request.create",   workflow_delivery_prepare: "delivery.prepare", workflow_delivery_publish: "delivery.publish",
-  workflow_history_heads: "history.heads", workflow_history_snapshot: "history.snapshot", workflow_history_compare: "history.compare",
+  workflow_history_heads: "history.heads", workflow_history_snapshot: "history.snapshot", workflow_history_compare: "history.compare", workflow_history_compare_slides: "history.compareSlides",
 }
 const rpc = z.object({ jsonrpc: z.literal("2.0"), id: z.union([z.string(), z.number()]).optional(), method: z.string(), params: z.unknown().optional() })
 

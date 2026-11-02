@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join, posix } from "node:path"
 import { createHash } from "node:crypto"
+import { comparePptx, type SlideComparison } from "./comparison"
 
 export type OutputFile = { path: string; source: string; destination: string }
 export type RevisionManifest = {
@@ -163,6 +164,34 @@ export class LocalHistory {
     const result = { ...manifest, commit, acceptedLocally: true, published: false }
     await writeFile(join(destination, "control-plane-manifest.json"), JSON.stringify(result, null, 2), { flag: "wx" })
     return result
+  }
+
+  async compareSlides(taskID: string, from: string, to: string, path: string): Promise<SlideComparison> {
+    if (path.includes("\\") || path.includes("..") || posix.isAbsolute(path) || !path.endsWith(".pptx") || path.split("/").some((part) => !part || part === "."))
+      throw new Error("Slide comparison needs a safe relative PPTX path")
+    const [before, after] = await Promise.all([this.manifest(taskID, from), this.manifest(taskID, to)])
+    if (!before.outputs.some((output) => output.path === path) || !after.outputs.some((output) => output.path === path))
+      throw new Error("Both revisions must contain that PPTX output")
+    const temporary = await mkdtemp(join(tmpdir(), "control-slides-"))
+    try {
+      const older = join(temporary, "before.pptx")
+      const newer = join(temporary, "after.pptx")
+      await this.extract(from, path, older, before)
+      await this.extract(to, path, newer, after)
+      return await comparePptx(older, newer)
+    } finally {
+      await rm(temporary, { recursive: true, force: true })
+    }
+  }
+
+  private async extract(commit: string, path: string, destination: string, manifest: RevisionManifest) {
+    const output = manifest.outputs.find((item) => item.path === path)
+    if (!output) throw new Error("Revision is missing that output")
+    const child = Bun.spawn(["git", "--git-dir", this.directory, "show", `${commit}:outputs/${path}`], { stdout: "pipe", stderr: "pipe" })
+    const bytes = new Uint8Array(await new Response(child.stdout).arrayBuffer())
+    if ((await child.exited) !== 0) throw new Error("Failed to read revision output")
+    if (createHash("sha256").update(bytes).digest("hex") !== output.sha256) throw new Error("Revision output checksum mismatch")
+    await writeFile(destination, bytes, { mode: 0o600 })
   }
 
   async recordPublication(taskID: string, commit: string, receipts: PublicationReceipt[]) {

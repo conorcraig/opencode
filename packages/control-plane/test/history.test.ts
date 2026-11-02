@@ -4,6 +4,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { LocalHistory } from "../src/history"
 
+test("slide comparison rejects paths outside the declared outputs", async () => {
+  const history = new LocalHistory("unused")
+  await expect(history.compareSlides("work1", "a".repeat(40), "b".repeat(40), "../secret.pptx")).rejects.toThrow("safe relative")
+  await expect(history.compareSlides("work1", "a".repeat(40), "b".repeat(40), "notes.md")).rejects.toThrow("safe relative")
+})
+
 test("accepted export retains the exact declared revision and excludes later working drafts", async () => {
  const temp=await mkdtemp(join(tmpdir(),"history-test-"))
  try {
