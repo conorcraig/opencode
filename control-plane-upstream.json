@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/anomalyco/opencode.git",
+  "commit": "8bca5329293a34f4bdd7fdc4f4020be80c1eb477",
+  "license": "MIT",
+  "packageManager": "bun@1.4.4",
+  "overlayPaths": [
+    "packages/control-plane",
+    "packages/app/src/control",
+    "packages/app/src/runtime/i18n/en.ts",
+    "packages/app/src/shell/routes/routes.tsx",
+    "packages/app/src/shell/shell.tsx",
+    "packages/app/src/shell/state/layout.tsx",
+    "packages/app/package.json",
+    "packages/app/tsconfig.json",
+    "bun.lock"
+  ]
+}

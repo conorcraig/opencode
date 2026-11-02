@@ -1,0 +1,24 @@
+{
+  "name": "@opencode/control-plane",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "start": "bun src/main.ts",
+    "test": "bun test",
+    "typecheck": "bun check --no-script",
+    "typecheck:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:",
+    "fflate": "0.8.3",
+    "fast-xml-parser": "5.11.2"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@typescript/native": "catalog:"
+  }
+}
