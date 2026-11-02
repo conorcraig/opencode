@@ -14,9 +14,13 @@ const definitions = [
   { name: "workflow_request_create", description: "Escalate a question, consequential decision or failure. Include concrete options, evidence, uncertainty and recommendation. Do not silently alter agreed scope.", schema: Request },
   { name: "workflow_delivery_prepare", description: "Prepare the exact proposed external action and destination for owner authorization. Preparation invalidates earlier publication approval. Keep scratch work private.", schema: Delivery },
   { name: "workflow_delivery_publish", description: "Execute a prepared externally authorized action through the service gate. Local acceptance is insufficient. Never blindly retry an ambiguous external result; require owner reconciliation.", schema: z.object({ id: z.string() }) },
+  { name: "workflow_history_heads", description: "Read the task's working, accepted and published local revision commits. Acceptance and publication are separate.", schema: z.object({ taskID: z.string() }) },
+  { name: "workflow_history_snapshot", description: "Save an exact local Git revision of the declared output files. This does not accept the revision or authorize publication. Scratch paths are rejected.", schema: z.object({ taskID: z.string(), message: z.string().default(""), outputs: z.array(z.object({ path: z.string(), source: z.string().min(1), destination: z.string() })).min(1) }) },
+  { name: "workflow_history_compare", description: "Diff a local revision against the accepted or published baseline.", schema: z.object({ taskID: z.string(), target: z.string(), baseline: z.enum(["accepted", "published"]) }) },
 ]
 const operations: Record<string, string> = {
-  workflow_task_create: "task.create", workflow_task_patch: "task.patch", workflow_task_enqueue: "task.enqueue", workflow_run_upsert: "run.upsert", workflow_artifact_upsert: "artifact.upsert", workflow_artifact_sync: "artifact.sync", workflow_review_request: "review.request", workflow_request_create: "request.create", workflow_delivery_prepare: "delivery.prepare", workflow_delivery_publish: "delivery.publish",
+  workflow_task_create: "task.create", workflow_task_patch: "task.patch", workflow_task_enqueue: "task.enqueue", workflow_run_upsert: "run.upsert", workflow_artifact_upsert: "artifact.upsert", workflow_artifact_sync: "artifact.sync", workflow_review_request: "review.request", workflow_request_create: "request.create",   workflow_delivery_prepare: "delivery.prepare", workflow_delivery_publish: "delivery.publish",
+  workflow_history_heads: "history.heads", workflow_history_snapshot: "history.snapshot", workflow_history_compare: "history.compare",
 }
 const rpc = z.object({ jsonrpc: z.literal("2.0"), id: z.union([z.string(), z.number()]).optional(), method: z.string(), params: z.unknown().optional() })
 

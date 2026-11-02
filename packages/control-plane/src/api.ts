@@ -1,10 +1,12 @@
+import { join } from "node:path"
 import { z } from "zod"
-import { Artifact,Brief,Delivery,Request,Run,ServerConfig,TaskCreate,TaskPatch } from "./schema"
+import { Artifact,Brief,Delivery,Request,Run,ServerConfig,Task,TaskCreate,TaskPatch } from "./schema"
 import { Conflict,WorkflowStore } from "./store"
+import { LocalHistory, type OutputFile, type PublicationReceipt } from "./history"
 
 export type Credentials={user:string,worker:string}
 export type Integrations={sync:(id:string)=>Promise<Artifact>,publish:(id:string)=>Promise<Delivery>}
-export function createApi(store:WorkflowStore,credentials:Credentials,integration?:Integrations,allowedOrigins:string[]=[]){
+export function createApi(store:WorkflowStore,credentials:Credentials,integration?:Integrations,allowedOrigins:string[]=[],history?:LocalHistory,exportDirectory?:string){
   return async(request:globalThis.Request):Promise<Response>=>{
     const origin=request.headers.get("origin")
     const permitted=!origin||origin==="oc://renderer"||allowedOrigins.includes(origin)||/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
@@ -50,6 +52,36 @@ export function createApi(store:WorkflowStore,credentials:Credentials,integratio
         case "settings.update":{user();const input=z.object({concurrency:z.number().int().min(1).max(32)}).parse(command.input);return respond(store.configure(input.concurrency))}
         case "task.enqueue":return respond(store.enqueue(z.object({taskID:z.string(),server:z.string(),directory:z.string().min(1),execute:z.boolean().default(true)}).parse(command.input)))
         case "queue.retry":user();return respond(store.retryQueue(ref.parse(command.input).id))
+        case "history.heads":
+        case "history.snapshot":
+        case "history.accept":
+        case "history.compare":
+        case "history.export":
+        case "history.recordPublication":{
+          if(!history)throw new Conflict("Local history is not configured")
+          const taskID=z.object({taskID:z.string()}).parse(command.input).taskID
+          store.get("tasks",taskID,Task)
+          if(command.op==="history.heads"){
+            const lanes=["working","accepted","published"] as const
+            const commits=Object.fromEntries(await Promise.all(lanes.map(async lane=>[lane,await history.head(taskID,lane)]))) as Record<typeof lanes[number],string|null>
+            return respond({...commits,manifest:commits.accepted?await history.manifest(taskID,commits.accepted):null})
+          }
+          if(command.op==="history.snapshot"){
+            const input=z.object({taskID:z.string(),message:z.string().default(""),outputs:z.array(z.object({path:z.string(),source:z.string().min(1),destination:z.string()})).min(1)}).parse(command.input)
+            return respond(await history.snapshot(taskID,input.outputs as OutputFile[],input.message))
+          }
+          if(command.op==="history.accept"){user();const input=z.object({taskID:z.string(),commit:z.string()}).parse(command.input);return respond({commit:await history.accept(taskID,input.commit)})}
+          if(command.op==="history.compare"){const input=z.object({taskID:z.string(),target:z.string(),baseline:z.enum(["accepted","published"])}).parse(command.input);return respond({diff:await history.compare(taskID,input.target,input.baseline)})}
+          if(command.op==="history.export"){
+            user()
+            if(!exportDirectory)throw new Conflict("Local export directory is not configured")
+            const input=z.object({taskID:z.string(),name:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/)}).parse(command.input)
+            return respond(await history.exportAccepted(taskID,join(exportDirectory,input.name)))
+          }
+          user()
+          const input=z.object({taskID:z.string(),commit:z.string(),receipts:z.array(z.object({destination:z.string(),version:z.string(),evidence:z.string()}))}).parse(command.input)
+          return respond(await history.recordPublication(taskID,input.commit,input.receipts as PublicationReceipt[]))
+        }
         default:return respond({error:"Unknown operation"},400)
       }
     }).catch((cause:unknown)=>respond({error:cause instanceof Error?cause.message:String(cause)},cause instanceof Conflict?409:cause instanceof z.ZodError||cause instanceof SyntaxError?400:502))
