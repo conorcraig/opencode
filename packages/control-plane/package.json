@@ -15,7 +15,8 @@
   "dependencies": {
     "zod": "catalog:",
     "fflate": "0.8.3",
-    "fast-xml-parser": "5.11.2"
+    "fast-xml-parser": "5.11.2",
+    "@opencode/client": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
