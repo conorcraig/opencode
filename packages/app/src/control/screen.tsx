@@ -75,6 +75,7 @@ export default function ControlScreen() {
   let reviewChanged = ""
   let reviewNext = ""
   let deliveryKey = ""
+  let deliveryKind = "jira-comment"
   let deliveryDestination = ""
   let deliveryPayload = "{}"
   let artifactTitle = ""
@@ -361,9 +362,16 @@ export default function ControlScreen() {
               if (!artifactID) return setError("Register an output before preparing an external action")
               let payload: Record<string, unknown>
               try { payload = JSON.parse(deliveryPayload) as Record<string, unknown> } catch { return setError("Action payload must be JSON") }
-              void act("delivery.prepare", { id: crypto.randomUUID(), taskID: current.id, key: deliveryKey, kind: "publish", artifactID, destination: deliveryDestination, payload, status: "ready", result: "", updated: Date.now() })
+              void act("delivery.prepare", { id: crypto.randomUUID(), taskID: current.id, key: deliveryKey, kind: deliveryKind, artifactID, destination: deliveryDestination, payload, status: "ready", result: "", updated: Date.now() })
             }}>
               <input aria-label="Action key" placeholder="Unique action key" onInput={(event) => { deliveryKey = event.currentTarget.value }} />
+              <select aria-label="Action kind" onChange={(event) => { deliveryKind = event.currentTarget.value }}>
+                <option value="jira-comment">Jira comment</option>
+                <option value="confluence-update">Confluence update</option>
+                <option value="github-push">GitHub push</option>
+                <option value="review-upload">Review upload</option>
+                <option value="publish">Publish</option>
+              </select>
               <input aria-label="Destination" placeholder="Destination" onInput={(event) => { deliveryDestination = event.currentTarget.value }} />
               <input aria-label="Payload JSON" placeholder="Payload JSON" onInput={(event) => { deliveryPayload = event.currentTarget.value }} />
               <button>Prepare action</button>
