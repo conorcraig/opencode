@@ -21,4 +21,6 @@ The original working checkout and temporary source archive were removed by autom
 
 ## Current checkpoint
 
-Source reconstruction in progress: service, GUI, native connectors, harness adapter, artifact history/comparison. Coherent checkpoints push directly to main. Native Windows/Electron, real-account publication and model-driven workflows need fresh validation.
+The service starts an artifact observer, stores exact local Git revisions, and exposes them through the user API and worker MCP. The OpenCode app route `/control/*` is the dark control workspace: task board, review decisions, questions, publication, and local revision acceptance. It does not require a paired coding server.
+
+Host files other than `packages/app/src/shell/routes/routes.tsx` were not modified. Native Windows/Electron, real-account publication, and model-driven workflows still need fresh validation on a bootstrapped checkout.
