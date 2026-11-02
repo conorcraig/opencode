@@ -1,0 +1,1 @@
+PASS: loopback launcher serves actual app; unrelated paths return 404.
